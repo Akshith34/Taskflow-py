@@ -15,3 +15,7 @@ if __name__ == '__main__':
 def delete_task(task_id):
     # In a real app, you'd delete from the DB here
     return jsonify({"message": f"Task {task_id} deleted!"}), 200
+
+@app.route('/')
+def index():
+    return render_template('index.html')
