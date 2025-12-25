@@ -11,3 +11,8 @@ def test_get_tasks(client):
     response = client.get('/tasks')
     assert response.status_code == 200
     assert b"Setup CI/CD" in response.data
+    
+def test_delete_task(client):
+    response = client.delete('/tasks/1')
+    assert response.status_code == 200
+    assert b"deleted" in response.data
