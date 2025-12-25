@@ -16,3 +16,9 @@ def test_delete_task(client):
     response = client.delete('/tasks/1')
     assert response.status_code == 200
     assert b"deleted" in response.data
+    
+def test_homepage(client):
+    """Test if the homepage loads without crashing."""
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b"TaskFlow" in response.data
