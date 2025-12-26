@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | TaskFlow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap');
+
+        :root {
+            --bg: linear-gradient(135deg, #0e1726 0%, #16243c 50%, #1f3b5b 100%);
+            --card: rgba(255, 255, 255, 0.06);
+            --accent: #5bd1ff;
+            --text: #e9eef7;
+            --muted: #9fb2c8;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+        }
+
+        .orb {
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle at 30% 30%, #5bd1ff, rgba(91, 209, 255, 0));
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: drift 12s ease-in-out infinite alternate;
+        }
+
+        .orb.right { right: 10%; top: 15%; }
+        .orb.left { left: 8%; bottom: 12%; }
+
+        @keyframes drift {
+            from { transform: translateY(-20px) scale(1); }
+            to { transform: translateY(20px) scale(1.05); }
+        }
+
+        .card {
+            position: relative;
+            width: min(420px, 90vw);
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 32px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+            z-index: 1;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #fff;
+        }
+
+        .brand .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px rgba(91, 209, 255, 0.7);
+        }
+
+        h1 { margin: 16px 0 6px; font-size: 26px; }
+        .subtitle { margin: 0 0 20px; color: var(--muted); }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #d3def1;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            outline: none;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(91, 209, 255, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #58c4ff, #7ae0c9);
+            color: #08111f;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover { transform: translateY(-1px); box-shadow: 0 10px 25px rgba(90, 210, 255, 0.25); }
+
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            min-height: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid transparent;
+        }
+
+        .status.success { border-color: rgba(95, 230, 182, 0.6); color: #9ef3c7; }
+        .status.error { border-color: rgba(255, 128, 128, 0.6); color: #ffc2c2; }
+        .status.pending { border-color: rgba(91, 209, 255, 0.6); color: #b5e6ff; }
+
+        .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+        .link-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .link-row a { color: var(--accent); text-decoration: none; }
+        .link-row a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="orb right"></div>
+    <div class="orb left"></div>
+    <main class="card">
+        <div class="brand"><span class="dot"></span> TaskFlow</div>
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to continue managing your tasks.</p>
+
+        <form id="loginForm">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" placeholder="e.g. alex" required>
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="••••••••" required>
+
+            <button type="submit">Sign in</button>
+        </form>
+
+        <p class="hint">Demo only: any credentials will be accepted.</p>
+        <div id="status" class="status" aria-live="polite"></div>
+        <div class="link-row">
+            <span>Forgot password? <a href="#" onclick="alert('Password reset is not set up in this demo.'); return false;">Reset</a></span>
+            <a href="/">Back to tasks</a>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const statusBox = document.getElementById('status');
+        const usernameInput = document.getElementById('username');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            statusBox.textContent = 'Signing in...';
+            statusBox.className = 'status pending';
+
+            const payload = {
+                username: usernameInput.value.trim(),
+                password: document.getElementById('password').value.trim()
+            };
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                statusBox.textContent = data.message || (response.ok ? 'Logged in.' : 'Login failed.');
+                statusBox.className = 'status ' + (response.ok ? 'success' : 'error');
+            } catch (err) {
+                statusBox.textContent = 'Unable to reach the server.';
+                statusBox.className = 'status error';
+            }
+        });
+
+        usernameInput.focus();
+    </script>
+</body>
+</html>

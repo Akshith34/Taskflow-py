@@ -1,42 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow</title>
     <style>
-        body { font-family: sans-serif; max-width: 400px; margin: 50px auto; background: #f4f4f4; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input { padding: 8px; width: 70%; }
-        button { padding: 8px; cursor: pointer; background: #28a745; color: white; border: none; }
-        ul { list-style: none; padding: 0; }
-        li { background: #eee; margin: 5px 0; padding: 10px; border-radius: 4px; }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap');
+
+        :root {
+            --bg: radial-gradient(circle at 10% 20%, rgba(91, 209, 255, 0.25), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(122, 224, 201, 0.25), transparent 35%),
+                  #0f1a2a;
+            --card: #0f233d;
+            --accent: #5bd1ff;
+            --text: #e9eef7;
+            --muted: #9fb2c8;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 16px;
+        }
+
+        .shell { width: min(760px, 100%); }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            backdrop-filter: blur(8px);
+        }
+
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.3px; }
+        .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px rgba(91, 209, 255, 0.8); }
+
+        .nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .nav a:hover { text-decoration: underline; }
+
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        h2 { margin: 0 0 8px; }
+        .subtitle { margin: 0 0 18px; color: var(--muted); }
+
+        .controls { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 18px; }
+
+        input {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            outline: none;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 209, 255, 0.2); }
+
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #58c4ff, #7ae0c9);
+            color: #08111f;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover { transform: translateY(-1px); box-shadow: 0 10px 25px rgba(90, 210, 255, 0.25); }
+
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        .badge { background: rgba(91, 209, 255, 0.15); color: var(--accent); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
+
+        .empty { color: var(--muted); text-align: center; padding: 10px 0; }
+
+        .status { color: #ffc2c2; margin-bottom: 8px; min-height: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>TaskFlow</h2>
-        <input type="text" id="taskInput" placeholder="New task...">
-        <button onclick="addTask()">Add</button>
-        <ul id="taskList"></ul>
+    <div class="shell">
+        <nav class="nav">
+            <div class="brand"><span class="dot"></span> TaskFlow</div>
+            <a href="/login">Login</a>
+        </nav>
+
+        <div class="card">
+            <h2>TaskFlow</h2>
+            <p class="subtitle">Add tasks and track progress in seconds.</p>
+
+            <div id="status" class="status" aria-live="polite"></div>
+
+            <div class="controls">
+                <input type="text" id="taskInput" placeholder="New task...">
+                <button onclick="addTask()">Add</button>
+            </div>
+
+            <ul id="taskList"></ul>
+        </div>
     </div>
 
     <script>
+        const taskList = document.getElementById('taskList');
+        const statusBox = document.getElementById('status');
+        const taskInput = document.getElementById('taskInput');
+
         async function loadTasks() {
-            const res = await fetch('/tasks');
-            const tasks = await res.json();
-            const list = document.getElementById('taskList');
-            list.innerHTML = tasks.map(t => `<li>${t.title}</li>`).join('');
+            statusBox.textContent = '';
+            try {
+                const res = await fetch('/tasks');
+                const items = await res.json();
+                renderTasks(items);
+            } catch (err) {
+                statusBox.textContent = 'Could not load tasks right now.';
+            }
+        }
+
+        function renderTasks(tasks) {
+            if (!tasks.length) {
+                taskList.innerHTML = '<li class="empty">No tasks yet. Add your first one!</li>';
+                return;
+            }
+
+            taskList.innerHTML = tasks.map(t => `
+                <li>
+                    <span>${t.title}</span>
+                    <span class="badge">ID ${t.id}</span>
+                </li>
+            `).join('');
         }
 
         async function addTask() {
-            const title = document.getElementById('taskInput').value;
-            await fetch('/tasks', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title})
-            });
-            document.getElementById('taskInput').value = '';
-            loadTasks();
+            const title = taskInput.value.trim();
+            if (!title) {
+                statusBox.textContent = 'Please enter a task title.';
+                return;
+            }
+
+            try {
+                await fetch('/tasks', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title})
+                });
+                taskInput.value = '';
+                loadTasks();
+            } catch (err) {
+                statusBox.textContent = 'Unable to add task right now.';
+            }
         }
+
+        taskInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+
         loadTasks();
     </script>
 </body>
