@@ -13,8 +13,10 @@
                   #0f1a2a;
             --card: #0f233d;
             --accent: #5bd1ff;
+            --accent-2: #7ae0c9;
             --text: #e9eef7;
             --muted: #9fb2c8;
+            --danger: #ff8b9a;
         }
 
         * { box-sizing: border-box; }
@@ -29,7 +31,7 @@
             padding: 40px 16px;
         }
 
-        .shell { width: min(760px, 100%); }
+        .shell { width: min(820px, 100%); }
 
         .nav {
             display: flex;
@@ -57,12 +59,30 @@
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
         }
 
-        h2 { margin: 0 0 8px; }
-        .subtitle { margin: 0 0 18px; color: var(--muted); }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        h2 { margin: 0 0 6px; }
+        .subtitle { margin: 0; color: var(--muted); }
+
+        .counts { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pill { padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 14px; color: var(--muted); }
+        .pill strong { color: var(--text); }
+        .pill.done { border-color: rgba(122, 224, 201, 0.6); }
+
+        .status { color: #ffc2c2; margin: 4px 0 12px; min-height: 20px; font-size: 14px; }
+        .status.success { color: #9ef3c7; }
+        .status.info { color: var(--muted); }
 
         .controls { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 18px; }
 
-        input {
+        input[type="text"] {
             padding: 12px 14px;
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.12);
@@ -72,13 +92,13 @@
             transition: border 0.2s ease, box-shadow 0.2s ease;
         }
 
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 209, 255, 0.2); }
+        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 209, 255, 0.2); }
 
         button {
             padding: 12px 16px;
             border: none;
             border-radius: 10px;
-            background: linear-gradient(135deg, #58c4ff, #7ae0c9);
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
             color: #08111f;
             font-weight: 700;
             cursor: pointer;
@@ -86,15 +106,26 @@
         }
 
         button:hover { transform: translateY(-1px); box-shadow: 0 10px 25px rgba(90, 210, 255, 0.25); }
+        button.ghost { background: rgba(255, 255, 255, 0.06); color: var(--text); border: 1px solid rgba(255, 255, 255, 0.1); }
+        button.danger { border-color: rgba(255, 139, 154, 0.6); color: var(--danger); }
 
         ul { list-style: none; padding: 0; margin: 0; }
-        li { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-
-        .badge { background: rgba(91, 209, 255, 0.15); color: var(--accent); padding: 6px 10px; border-radius: 999px; font-size: 13px; }
+        .task { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
+        .task.is-done { opacity: 0.7; }
+        .task .title { font-weight: 600; }
+        .task.is-done .title { text-decoration: line-through; color: var(--muted); }
+        .task .meta { color: var(--muted); font-size: 13px; }
+        .task .actions { margin-left: auto; display: flex; gap: 8px; }
+        .task input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer; }
 
         .empty { color: var(--muted); text-align: center; padding: 10px 0; }
 
-        .status { color: #ffc2c2; margin-bottom: 8px; min-height: 20px; }
+        @media (max-width: 640px) {
+            .controls { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .task { flex-wrap: wrap; }
+            .task .actions { width: 100%; justify-content: flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -105,14 +136,23 @@
         </nav>
 
         <div class="card">
-            <h2>TaskFlow</h2>
-            <p class="subtitle">Add tasks and track progress in seconds.</p>
+            <div class="header">
+                <div>
+                    <h2>TaskFlow</h2>
+                    <p class="subtitle">Add tasks, mark progress, and keep everything in one place.</p>
+                </div>
+                <div class="counts">
+                    <div class="pill"><strong id="count-total">1</strong> total</div>
+                    <div class="pill"><strong id="count-open">1</strong> open</div>
+                    <div class="pill done"><strong id="count-done">0</strong> done</div>
+                </div>
+            </div>
 
             <div id="status" class="status" aria-live="polite"></div>
 
             <div class="controls">
                 <input type="text" id="taskInput" placeholder="New task...">
-                <button onclick="addTask()">Add</button>
+                <button id="addBtn">Add</button>
             </div>
 
             <ul id="taskList"></ul>
@@ -123,57 +163,160 @@
         const taskList = document.getElementById('taskList');
         const statusBox = document.getElementById('status');
         const taskInput = document.getElementById('taskInput');
+        const state = { tasks: [] };
 
-        async function loadTasks() {
-            statusBox.textContent = '';
-            try {
-                const res = await fetch('/tasks');
-                const items = await res.json();
-                renderTasks(items);
-            } catch (err) {
-                statusBox.textContent = 'Could not load tasks right now.';
-            }
+        document.getElementById('addBtn').addEventListener('click', addTask);
+        taskInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { addTask(); }
+        });
+
+        function setStatus(message, variant = 'error') {
+            statusBox.textContent = message || '';
+            statusBox.className = 'status ' + variant;
         }
 
-        function renderTasks(tasks) {
-            if (!tasks.length) {
+        function escapeHtml(str) {
+            return str.replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+        }
+
+        function renderTasks() {
+            const total = state.tasks.length;
+            const done = state.tasks.filter(t => t.done).length;
+            document.getElementById('count-total').textContent = total;
+            document.getElementById('count-open').textContent = total - done;
+            document.getElementById('count-done').textContent = done;
+
+            if (!state.tasks.length) {
                 taskList.innerHTML = '<li class="empty">No tasks yet. Add your first one!</li>';
                 return;
             }
 
-            taskList.innerHTML = tasks.map(t => `
-                <li>
-                    <span>${t.title}</span>
-                    <span class="badge">ID ${t.id}</span>
+            taskList.innerHTML = state.tasks.map(task => `
+                <li class="task ${task.done ? 'is-done' : ''}">
+                    <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleDone(${task.id}, this.checked)">
+                    <div>
+                        <div class="title">${escapeHtml(task.title)}</div>
+                        <div class="meta">ID ${task.id}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="ghost" onclick="renameTask(${task.id})">Rename</button>
+                        <button class="ghost danger" onclick="deleteTask(${task.id})">Delete</button>
+                    </div>
                 </li>
             `).join('');
+        }
+
+        async function loadTasks() {
+            setStatus('Loading tasks...', 'info');
+            try {
+                const res = await fetch('/tasks');
+                state.tasks = await res.json();
+                setStatus('', 'info');
+                renderTasks();
+            } catch (err) {
+                setStatus('Could not load tasks right now.');
+            }
         }
 
         async function addTask() {
             const title = taskInput.value.trim();
             if (!title) {
-                statusBox.textContent = 'Please enter a task title.';
+                setStatus('Please enter a task title.', 'error');
                 return;
             }
 
             try {
-                await fetch('/tasks', {
+                const res = await fetch('/tasks', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({title})
                 });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Unable to add task.');
+                }
+
+                const data = await res.json();
+                state.tasks.push(data);
                 taskInput.value = '';
-                loadTasks();
+                renderTasks();
+                setStatus('Task added.', 'success');
             } catch (err) {
-                statusBox.textContent = 'Unable to add task right now.';
+                setStatus(err.message);
             }
         }
 
-        taskInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                addTask();
+        async function toggleDone(id, done) {
+            try {
+                const res = await fetch(`/tasks/${id}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({done})
+                });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Unable to update task.');
+                }
+
+                const updated = await res.json();
+                state.tasks = state.tasks.map(t => t.id === id ? updated : t);
+                renderTasks();
+                setStatus(done ? 'Marked as done.' : 'Marked as open.', 'success');
+            } catch (err) {
+                setStatus(err.message);
+                renderTasks();
             }
-        });
+        }
+
+        async function renameTask(id) {
+            const current = state.tasks.find(t => t.id === id);
+            const nextTitle = prompt('Rename task', current ? current.title : '');
+            if (nextTitle === null) return;
+            const clean = nextTitle.trim();
+            if (!clean) {
+                setStatus('Title cannot be empty.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/tasks/${id}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: clean})
+                });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Unable to rename task.');
+                }
+
+                const updated = await res.json();
+                state.tasks = state.tasks.map(t => t.id === id ? updated : t);
+                renderTasks();
+                setStatus('Task renamed.', 'success');
+            } catch (err) {
+                setStatus(err.message);
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Delete this task?')) return;
+            try {
+                const res = await fetch(`/tasks/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Unable to delete task.');
+                }
+
+                state.tasks = state.tasks.filter(t => t.id !== id);
+                renderTasks();
+                setStatus('Task deleted.', 'success');
+            } catch (err) {
+                setStatus(err.message);
+            }
+        }
 
         loadTasks();
     </script>
