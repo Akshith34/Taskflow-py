@@ -51,7 +51,9 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    if request.accept_mimetypes.accept_json or request.path.startswith("/tasks"):
+    accept_header = request.headers.get("Accept", "")
+    wants_json = "application/json" in accept_header
+    if wants_json or request.path.startswith("/tasks"):
         return jsonify({"message": "Login required."}), 401
     return redirect("/login")
 
