@@ -48,8 +48,11 @@
         .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.3px; }
         .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px rgba(91, 209, 255, 0.8); }
 
-        .nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
-        .nav a:hover { text-decoration: underline; }
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+        .nav-actions form { margin: 0; }
+        .nav-actions .user-pill { color: var(--muted); font-weight: 600; }
+        .nav-actions a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .nav-actions a:hover { text-decoration: underline; }
 
         .card {
             background: var(--card);
@@ -132,7 +135,17 @@
     <div class="shell">
         <nav class="nav">
             <div class="brand"><span class="dot"></span> TaskFlow</div>
-            <a href="/login">Login</a>
+            <div class="nav-actions">
+                {% if current_user.is_authenticated %}
+                    <span class="user-pill">Hi, {{ current_user.username }}</span>
+                    <form action="/logout" method="post">
+                        <button class="ghost" type="submit">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="/login">Login</a>
+                    <a href="/register">Register</a>
+                {% endif %}
+            </div>
         </nav>
 
         <div class="card">
@@ -142,8 +155,8 @@
                     <p class="subtitle">Add tasks, mark progress, and keep everything in one place.</p>
                 </div>
                 <div class="counts">
-                    <div class="pill"><strong id="count-total">1</strong> total</div>
-                    <div class="pill"><strong id="count-open">1</strong> open</div>
+                    <div class="pill"><strong id="count-total">0</strong> total</div>
+                    <div class="pill"><strong id="count-open">0</strong> open</div>
                     <div class="pill done"><strong id="count-done">0</strong> done</div>
                 </div>
             </div>
@@ -170,13 +183,13 @@
             if (e.key === 'Enter') { addTask(); }
         });
 
-        function setStatus(message, variant = 'error') {
+        function setStatus(message, variant = '') {
             statusBox.textContent = message || '';
-            statusBox.className = 'status ' + variant;
+            statusBox.className = 'status ' + (variant || '');
         }
 
         function escapeHtml(str) {
-            return str.replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+            return str.replace(/[&<>\"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
         }
 
         function renderTasks() {
@@ -210,6 +223,10 @@
             setStatus('Loading tasks...', 'info');
             try {
                 const res = await fetch('/tasks');
+                if (res.status === 401) {
+                    setStatus('Please log in to see your tasks.', 'error');
+                    return;
+                }
                 state.tasks = await res.json();
                 setStatus('', 'info');
                 renderTasks();
@@ -232,12 +249,11 @@
                     body: JSON.stringify({title})
                 });
 
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to add task.');
                 }
 
-                const data = await res.json();
                 state.tasks.push(data);
                 taskInput.value = '';
                 renderTasks();
@@ -255,13 +271,12 @@
                     body: JSON.stringify({done})
                 });
 
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to update task.');
                 }
 
-                const updated = await res.json();
-                state.tasks = state.tasks.map(t => t.id === id ? updated : t);
+                state.tasks = state.tasks.map(t => t.id === id ? data : t);
                 renderTasks();
                 setStatus(done ? 'Marked as done.' : 'Marked as open.', 'success');
             } catch (err) {
@@ -287,13 +302,12 @@
                     body: JSON.stringify({title: clean})
                 });
 
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to rename task.');
                 }
 
-                const updated = await res.json();
-                state.tasks = state.tasks.map(t => t.id === id ? updated : t);
+                state.tasks = state.tasks.map(t => t.id === id ? data : t);
                 renderTasks();
                 setStatus('Task renamed.', 'success');
             } catch (err) {
@@ -305,8 +319,8 @@
             if (!confirm('Delete this task?')) return;
             try {
                 const res = await fetch(`/tasks/${id}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Unable to delete task.');
                 }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | TaskFlow</title>
+    <title>Register | TaskFlow</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap');
 
@@ -149,39 +149,35 @@
     <div class="orb left"></div>
     <main class="card">
         <div class="brand"><span class="dot"></span> TaskFlow</div>
-        <h1>Welcome back</h1>
-        <p class="subtitle">Sign in to continue managing your tasks.</p>
+        <h1>Create your account</h1>
+        <p class="subtitle">Register to start tracking your tasks.</p>
 
-        <form id="loginForm">
+        <form id="registerForm">
             <label for="username">Username</label>
             <input id="username" name="username" type="text" placeholder="e.g. alex" required>
 
             <label for="password">Password</label>
             <input id="password" name="password" type="password" placeholder="••••••••" required>
 
-            <button type="submit">Sign in</button>
+            <button type="submit">Create account</button>
         </form>
 
-        <p class="hint">Use your TaskFlow account to continue.</p>
+        <p class="hint">Usernames must be unique. Passwords are stored as hashes.</p>
         <div id="status" class="status" aria-live="polite"></div>
         <div class="link-row">
-            <span>Forgot password? <a href="#" onclick="alert('Password reset is not set up in this demo.'); return false;">Reset</a></span>
-            <div>
-                <a href="/register">Create account</a>
-                &nbsp;&bull;&nbsp;
-                <a href="/">Back to tasks</a>
-            </div>
+            <span>Already have an account? <a href="/login">Sign in</a></span>
+            <a href="/">Back to tasks</a>
         </div>
     </main>
 
     <script>
-        const form = document.getElementById('loginForm');
+        const form = document.getElementById('registerForm');
         const statusBox = document.getElementById('status');
         const usernameInput = document.getElementById('username');
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
-            statusBox.textContent = 'Signing in...';
+            statusBox.textContent = 'Creating account...';
             statusBox.className = 'status pending';
 
             const payload = {
@@ -190,7 +186,7 @@
             };
 
             try {
-                const response = await fetch('/login', {
+                const response = await fetch('/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -198,10 +194,10 @@
 
                 const data = await response.json();
                 if (!response.ok) {
-                    throw new Error(data.message || 'Login failed.');
+                    throw new Error(data.message || 'Registration failed.');
                 }
 
-                statusBox.textContent = data.message || 'Logged in.';
+                statusBox.textContent = data.message || 'Account created.';
                 statusBox.className = 'status success';
                 setTimeout(() => { window.location.href = '/'; }, 400);
             } catch (err) {
