@@ -45,5 +45,11 @@ def login():
 def index():
     return render_template('index.html')
 
+@app.route('/tasks', methods=['POST'])
+def add_task():
+    data = request.get_json()
+    # ... logic ...
+    return jsonify({"message": "Task added!"}), 500 # Changed 201 to 500 (Error)
+
 if __name__ == '__main__':
     app.run(debug=True)
